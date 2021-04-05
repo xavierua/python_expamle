@@ -1,10 +1,18 @@
 from random import randint
+import os
+
 
 # Here we choice with size for square you want
-side = int(input('Choise wich side you want (from 4 to 8)\n'))
+side = int(input('Choice which side you want (from 4 to 8)\n'))
 
 # Making a game field, where we use size from variable 'side'
 game_field = [['*' for y in range(side)] for x in range(side)]
+
+# Save points
+score = 0
+
+# Number when the game ends, if number is 2048 the game will end
+is_2048 = 0
 
 
 def get_index():
@@ -18,6 +26,12 @@ def show_board():
         for y in x:
             print(y, end=' ')
         print()
+
+
+def check_if_2048(number):
+    # Check if someone on board has a 2048 and add to variable
+    global is_2048
+    is_2048 = number
 
 
 def create_number():
@@ -44,29 +58,38 @@ def check_empty_space():
     return False
 
 
-def can_move_left_or_right(revers=0):
+def can_move_left_or_right(revers=False):
     # Check if you can move left or right
-    field = game_field.copy()
     for x in range(side):
         if revers:
-            field[x].reverse()
+            game_field[x].reverse()
         for y in range(1, side):
-            if field[x][y-1] == '*' and field[x][y] != '*':
+            if game_field[x][y-1] == '*' and game_field[x][y] != '*':
+                if revers:
+                    game_field[x].reverse()
                 return True
-            if field[x][y-1] == field[x][y] and field[x][y-1] != '*':
+            if game_field[x][y-1] == game_field[x][y] and game_field[x][y-1] != '*':
+                if revers:
+                    game_field[x].reverse()
                 return True
+        if revers:
+            game_field[x].reverse()
     return False
 
 
-def can_move_up_or_down(revers=0):
+def can_move_up_or_down(revers=False):
     # Check if can move up or down
     if revers:
         game_field.reverse()
     for y in range(side):
         for x in range(1, side):
             if game_field[x-1][y] == '*' and game_field[x][y] != '*':
+                if revers:
+                    game_field.reverse()
                 return True
             if game_field[x-1][y] == game_field[x][y] and game_field[x-1][y] != '*':
+                if revers:
+                    game_field.reverse()
                 return True
     if revers:
         game_field.reverse()
@@ -95,7 +118,7 @@ def your_choice(up, down, left, right):
     return your_input
 
 
-def move_up_or_down(revers=0):
+def move_up_or_down(revers=False):
     # Move all number on game field up or down
     step = 1
     if revers:
@@ -113,7 +136,7 @@ def move_up_or_down(revers=0):
         game_field.reverse()
 
 
-def move_left_or_right(revers=0):
+def move_left_or_right(revers=False):
     # Move all numbers on game field left or right
     step = 1
     for x in range(side):
@@ -132,7 +155,8 @@ def move_left_or_right(revers=0):
 
 
 def addition_row(reverse=0):
-    # Addition all numbers (if two number is the same) in rows
+    global score
+    # Addition all numbers (if two number is the same) in rows and addition points to score
     for x in range(side):
         if reverse:
             game_field[x].reverse()
@@ -142,53 +166,73 @@ def addition_row(reverse=0):
             if number_one == number_two and number_one != '*':
                 game_field[x][y-1] = number_one + number_two
                 game_field[x][y] = '*'
+                score += (number_one + number_two)
+                if (number_one + number_two) == 2048:
+                    check_if_2048(number_one + number_two)
         if reverse:
             game_field[x].reverse()
 
 
 def addition_column(revers=0):
-    # Addition all numbers (if two numbers is the same) in columns
+    global score
+    # Addition all numbers (if two numbers is the same) in columns and addition points to score
     if revers:
         game_field.reverse()
     for x in range(side):
         for y in range(1, side):
+            number_one = game_field[y-1][x]
+            number_two = game_field[y][x]
             if game_field[y-1][x] == game_field[y][x] and game_field[y-1][x] != '*':
-                game_field[y-1][x] = game_field[y-1][x] + game_field[y][x]
+                game_field[y-1][x] = number_one + number_two
                 game_field[y][x] = '*'
+                score += (number_one + number_two)
+                if (number_one + number_two) == 2048:
+                    check_if_2048(number_one + number_two)
     if revers:
         game_field.reverse()
 
 
-while True:
-    if check_empty_space():
-        put_number_on_field()
+put_number_on_field()
+
+while is_2048 != 2048:
+    put_number_on_field()
+    print(f'Your Score - {score}')
+    print('=' * 20)
+    show_board()
+    can_move_up = can_move_up_or_down()
+    can_move_down = can_move_up_or_down(True)
+    can_move_left = can_move_left_or_right()
+    can_move_right = can_move_left_or_right(True)
+    choice = input(your_choice(can_move_up, can_move_down, can_move_left, can_move_right))
+    while True:
+        if check_empty_space() or ((can_move_left or can_move_right) or (can_move_up or can_move_down)):
+            if choice == 'a' and can_move_left:
+                move_left_or_right()
+                addition_row()
+                move_left_or_right()
+                break
+            if choice == 'd' and can_move_right:
+                move_left_or_right(True)
+                addition_row(True)
+                move_left_or_right(True)
+                break
+            if choice == 'w' and can_move_up:
+                move_up_or_down()
+                addition_column()
+                move_up_or_down()
+                break
+            if choice == 's' and can_move_down:
+                move_up_or_down(True)
+                addition_column(True)
+                move_up_or_down(True)
+                break
+        else:
+            break
+        choice = input()
+
+    if check_empty_space() or ((can_move_left or can_move_right) or (can_move_up or can_move_down)):
+        continue
     else:
         print('Game Over')
         break
-    show_board()
-    move_up = can_move_up_or_down()
-    move_down = can_move_up_or_down(1)
-    move_left = can_move_left_or_right()
-    move_right = can_move_left_or_right(1)
-    choice = input('')
-    while True:
-        if choice == 'a' and move_left:
-            move_left_or_right()
-            addition_row()
-            move_left_or_right()
-            break
-        if choice == 'd' and move_right:
-            move_left_or_right(1)
-            addition_row(1)
-            move_left_or_right(1)
-            break
-        if choice == 'w' and move_up:
-            move_up_or_down()
-            addition_column()
-            move_up_or_down()
-            break
-        if choice == 's' and move_down:
-            move_up_or_down(1)
-            addition_column(1)
-            move_up_or_down(1)
-            break
+print(f'Congratulation! You take 2048 and your score is {score}')
